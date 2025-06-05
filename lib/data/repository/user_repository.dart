@@ -27,13 +27,6 @@ class UserRepository {
     Response response = await dio.post("/login", data: requestBody);
     Map<String, dynamic> responseBody = response.data;
 
-    // 3. 헤더에서 토큰을 바디로 옮기기
-    String accessToken = "";
-    try {
-      accessToken = response.headers["Authorization"]![0];
-      responseBody["response"]["accessToken"] = accessToken;
-    } catch (e) {}
-    Logger().d(responseBody);
     return responseBody;
   }
 }
