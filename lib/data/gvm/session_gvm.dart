@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show ScaffoldMessenger, Text, SnackBar, Navigator;
 import 'package:flutter_blog/_core/utils/my_http.dart';
+import 'package:flutter_blog/data/model/user.dart';
 import 'package:flutter_blog/data/repository/user_repository.dart';
 import 'package:flutter_blog/main.dart';
 import 'package:flutter_blog/ui/pages/auth/join_page/join_fm.dart';
@@ -64,39 +65,34 @@ class SessionGVM extends Notifier<SessionModel> {
       return;
     }
 
-    // 3. 토큰을 디바이스 저장
-    await secureStorage.write(key: "accessToken", value: body["response"]["accessToken"]);
+    // 3. 파싱
+    User user = User.fromMap(body["response"]);
 
-    // 4. 세션모델 갱신
-    state = SessionModel(
-        id: body["response"]["id"],
-        username: body["response"]["username"],
-        imgUrl: body["response"]["imgUrl"],
-        accessToken: body["response"]["accessToken"],
-        isLogin: true);
+    // 4. 토큰을 디바이스 저장
+    await secureStorage.write(key: "accessToken", value: user.accessToken);
 
-    // 5. dio의 header에 토큰 세팅
-    dio.options.headers["Authorization"] = body["response"]["accessToken"];
+    // 5. 세션모델 갱신
+    state = SessionModel(user: user, isLogin: true);
 
-    // 6. 게시글 목록 페이지 이동
+    // 6. dio의 header에 토큰 세팅
+    dio.options.headers["Authorization"] = user.accessToken;
+
+    // 7. 게시글 목록 페이지 이동
     Navigator.pushNamed(mContext, "/post/list");
   }
 
   Future<void> logout() async {}
 }
 
-/// 3. 창고 데이터 타입
+/// 3. 창고 데이터 타입 (불변 아님)
 class SessionModel {
-  int? id;
-  String? username;
-  String? imgUrl;
-  String? accessToken;
+  User? user;
   bool? isLogin;
 
-  SessionModel({this.id, this.username, this.imgUrl, this.accessToken, this.isLogin = false});
+  SessionModel({this.user, this.isLogin = false});
 
   @override
   String toString() {
-    return 'SessionModel{id: $id, username: $username, imgUrl: $imgUrl, accessToken: $accessToken, isLogin: $isLogin}';
+    return 'SessionModel{user: $user, isLogin: $isLogin}';
   }
 }
