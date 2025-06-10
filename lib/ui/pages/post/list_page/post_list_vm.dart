@@ -4,6 +4,7 @@ import 'package:flutter_blog/data/repository/post_repository.dart';
 import 'package:flutter_blog/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 /// 1. 창고 관리자
 final postListProvider = NotifierProvider<PostListVM, PostListModel?>(() {
@@ -13,6 +14,7 @@ final postListProvider = NotifierProvider<PostListVM, PostListModel?>(() {
 /// 2. 창고 (상태가 변경되어도, 화면 갱신 안함 - watch 하지마)
 class PostListVM extends Notifier<PostListModel?> {
   final mContext = navigatorKey.currentContext!;
+  final refreshCtrl = RefreshController();
 
   @override
   PostListModel? build() {
@@ -62,6 +64,8 @@ class PostListVM extends Notifier<PostListModel?> {
     }
 
     state = PostListModel.fromMap(body["response"]);
+
+    refreshCtrl.refreshCompleted();
   }
 
   void notifyUpdate(Post post) {
@@ -74,6 +78,30 @@ class PostListVM extends Notifier<PostListModel?> {
     }).toList();
 
     state = state!.copyWith(posts: nextPosts);
+  }
+
+  Future<void> nextList() async {
+    PostListModel prevModel = state!;
+
+    if (prevModel.isLast) {
+      await Future.delayed(Duration(milliseconds: 500));
+      refreshCtrl.loadComplete();
+      return;
+    }
+
+    Map<String, dynamic> body = await PostRepository().getList(page: prevModel.pageNumber + 1);
+    if (!body["success"]) {
+      ScaffoldMessenger.of(mContext!).showSnackBar(
+        SnackBar(content: Text("게시글 로드 실패 : ${body["errorMessage"]}")),
+      );
+      refreshCtrl.loadComplete();
+      return;
+    }
+
+    PostListModel nextModel = PostListModel.fromMap(body["response"]);
+
+    state = nextModel.copyWith(posts: [...prevModel.posts, ...nextModel.posts]);
+    refreshCtrl.loadComplete();
   }
 }
 
