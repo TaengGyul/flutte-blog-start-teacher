@@ -63,6 +63,18 @@ class PostListVM extends Notifier<PostListModel?> {
 
     state = PostListModel.fromMap(body["response"]);
   }
+
+  void notifyUpdate(Post post) {
+    List<Post> nextPosts = state!.posts.map((p) {
+      if (p.id == post.id) {
+        return post;
+      } else {
+        return p;
+      }
+    }).toList();
+
+    state = state!.copyWith(posts: nextPosts);
+  }
 }
 
 /// 3. 창고 데이터 타입 (불변 아님)
