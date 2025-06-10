@@ -3,6 +3,7 @@ import 'package:flutter_blog/data/model/post.dart';
 import 'package:flutter_blog/data/repository/post_repository.dart';
 import 'package:flutter_blog/main.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
 
 /// 1. 창고 관리자
 final postListProvider = NotifierProvider<PostListVM, PostListModel?>(() {
@@ -17,6 +18,30 @@ class PostListVM extends Notifier<PostListModel?> {
   PostListModel? build() {
     init();
     return null;
+  }
+
+  Future<void> write(String title, String content) async {
+    Logger().d("글쓰기 버튼 클릭 : $title, $content");
+    // 1. Repository 에 함수 호출
+    Map<String, dynamic> body = await PostRepository().write(title, content);
+
+    // 1-2. 성공 여부 확인
+    if (!body["success"]) {
+      ScaffoldMessenger.of(mContext!).showSnackBar(
+        SnackBar(content: Text("게시글 쓰기 실패 : ${body["errorMessage"]}")),
+      );
+      return;
+    }
+
+    // 2. 파싱
+    Post post = Post.fromMap(body["response"]);
+
+    // 3. List 상태 갱신
+    List<Post> nextPosts = [post, ...state!.posts];
+    state = state!.copyWith(posts: nextPosts);
+
+    // 4. 글쓰기 화면 POP
+    Navigator.pop(mContext);
   }
 
   void notifyDeleteOne(int postId) {
